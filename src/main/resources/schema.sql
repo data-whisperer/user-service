@@ -1,132 +1,87 @@
-CREATE TABLE IF NOT EXISTS public.user_permission
-(
-    id uuid NOT NULL,
-    name character varying COLLATE pg_catalog."default" NOT NULL,
-    description character varying COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT user_permission_pkey PRIMARY KEY (id)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 1. Userdetails
+CREATE TABLE userdetails (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fullname VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS public.access_role
-(
-    id uuid NOT NULL,
-    name character varying COLLATE pg_catalog."default" NOT NULL,
-    created_on timestamp without time zone NOT NULL,
-    CONSTRAINT access_role_pkey PRIMARY KEY (id)
+-- 2. Access Role
+CREATE TABLE access_role (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS public.access_role_user_permission
-(
-    access_role_id uuid NOT NULL,
-    user_permission_id uuid NOT NULL,
-    CONSTRAINT access_role_user_permission_pkey PRIMARY KEY (access_role_id, user_permission_id),
-    CONSTRAINT access_role_user_permission_access_role_id_fkey FOREIGN KEY (access_role_id)
-        REFERENCES public.access_role (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-        NOT VALID,
-    CONSTRAINT access_role_user_permission_user_permission_id_fkey FOREIGN KEY (user_permission_id)
-        REFERENCES public.user_permission (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+-- 3. User Permission
+CREATE TABLE user_permission (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS public.file_details
-(
-    id uuid NOT NULL,
-    name character varying COLLATE pg_catalog."default" NOT NULL,
-    mime_type character varying COLLATE pg_catalog."default" NOT NULL,
-    path character varying COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT file_details_pkey PRIMARY KEY (id)
+-- 4. AccessRole2Permission
+CREATE TABLE accessrole2permission (
+    access_role_id UUID NOT NULL,
+    user_permission_id UUID NOT NULL,
+    PRIMARY KEY (access_role_id, user_permission_id),
+    FOREIGN KEY (access_role_id) REFERENCES access_role(id),
+    FOREIGN KEY (user_permission_id) REFERENCES user_permission(id)
 );
 
-
-CREATE TABLE IF NOT EXISTS public.user_details
-(
-    id uuid NOT NULL,
-    full_name character varying COLLATE pg_catalog."default" NOT NULL,
-    email character varying COLLATE pg_catalog."default" NOT NULL,
-    password character varying COLLATE pg_catalog."default" NOT NULL,
-    created_on timestamp without time zone NOT NULL,
-    picture uuid,
-    access_role_id uuid NOT NULL,
-    CONSTRAINT user_details_pkey PRIMARY KEY (id),
-    CONSTRAINT user_details_email_key UNIQUE (email),
-    CONSTRAINT user_details_access_role_id_fkey FOREIGN KEY (access_role_id)
-        REFERENCES public.access_role (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-        NOT VALID,
-    CONSTRAINT user_details_picture_fkey FOREIGN KEY (picture)
-        REFERENCES public.file_details (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-        NOT VALID
+-- 5. File Details
+CREATE TABLE file_details (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(100),
+    location TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public.resume
-(
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    file_id uuid NOT NULL,
-    upload_date timestamp without time zone NOT NULL,
-    CONSTRAINT resume_pkey PRIMARY KEY (id),
-    CONSTRAINT resume_file_id_fkey FOREIGN KEY (file_id)
-        REFERENCES public.file_details (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION,
-    CONSTRAINT resume_user_id_fkey FOREIGN KEY (user_id)
-        REFERENCES public.user_details (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+-- 6. Resume
+CREATE TABLE resume (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    resume_file UUID NOT NULL,
+    upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES userdetails(id),
+    FOREIGN KEY (resume_file) REFERENCES file_details(id)
 );
 
-CREATE TABLE IF NOT EXISTS public.skill
-(
-    id uuid NOT NULL,
-    name name COLLATE pg_catalog."C" NOT NULL,
-    CONSTRAINT skill_pkey PRIMARY KEY (id)
+-- 7. Skill
+CREATE TABLE skill (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public.skill_level
-(
-    id uuid NOT NULL,
-    name character varying COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT skill_level_pkey PRIMARY KEY (id)
+-- 8. Skill Level
+CREATE TABLE skill_level (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) UNIQUE NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS public.skill_details
-(
-    id uuid NOT NULL,
-    skill_id uuid NOT NULL,
-    skill_level_id uuid NOT NULL,
-    description character varying COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT skill_level_description_pkey PRIMARY KEY (id),
-    CONSTRAINT skill_level_description_skill_id_fkey FOREIGN KEY (skill_id)
-        REFERENCES public.skill (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-        NOT VALID,
-    CONSTRAINT skill_level_description_skill_level_id_fkey FOREIGN KEY (skill_level_id)
-        REFERENCES public.skill_level (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-        NOT VALID
+-- 9. Skill Level Description
+CREATE TABLE skill_level_description (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    skill_id UUID NOT NULL,
+    skill_level_id UUID NOT NULL,
+    description TEXT,
+    FOREIGN KEY (skill_id) REFERENCES skill(id),
+    FOREIGN KEY (skill_level_id) REFERENCES skill_level(id),
+    UNIQUE (skill_id, skill_level_id)
 );
 
-CREATE TABLE IF NOT EXISTS public.user_skills
-(
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    skill_details uuid NOT NULL,
-    experience integer NOT NULL,
-    CONSTRAINT user_skills_pkey PRIMARY KEY (id),
-    CONSTRAINT user_skills_skill_details_fkey FOREIGN KEY (skill_details)
-        REFERENCES public.skill_details (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-        NOT VALID,
-    CONSTRAINT user_skills_user_id_fkey FOREIGN KEY (user_id)
-        REFERENCES public.user_details (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+-- 10. User Skills
+CREATE TABLE user_skills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    skill_id UUID NOT NULL,
+    skill_level_id UUID NOT NULL,
+    experience INT,
+    FOREIGN KEY (user_id) REFERENCES userdetails(id),
+    FOREIGN KEY (skill_id) REFERENCES skill(id),
+    FOREIGN KEY (skill_level_id) REFERENCES skill_level(id),
+    UNIQUE (user_id, skill_id)
 );
