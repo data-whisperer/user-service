@@ -1,2 +1,20 @@
-# user-service
-User Service is a Java Spring Boot microservice for managing users and their profiles. It provides a clean set of REST APIs for user registration, authentication, and profile management.
+# User Service
+Manages user data, authentication, and resume management
+
+## Configuration
+
+### Database Configuration
+The application uses PostgreSQL. Configure the database connection in `application.properties`:
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/userservice
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+```
+
+### File Storage Configuration
+The application stores uploaded resumes in a configurable directory. Configure the upload directory in `application.properties`:
+
+```properties
+# For development
