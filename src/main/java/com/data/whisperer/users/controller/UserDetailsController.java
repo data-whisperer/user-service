@@ -5,6 +5,7 @@ import com.data.whisperer.users.model.UserDetails;
 import com.data.whisperer.users.service.UserDetailsService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
@@ -20,16 +22,17 @@ public class UserDetailsController {
     private final UserDetailsService userDetailsService;
     
     @GetMapping
-    public ResponseEntity<List<UserDetails>> getAllUsers() {
-        return ResponseEntity.ok(userDetailsService.getAllUsers());
+    public List<UserDetailsDTO> getAllUsers() {
+        return userDetailsService.getAllUsers();
     }
     
     @GetMapping("/{id}")
-    public ResponseEntity<UserDetails> getUserById(@PathVariable UUID id) {
+    public UserDetailsDTO getUserById(@PathVariable UUID id) {
         try {
-            return ResponseEntity.ok(userDetailsService.getUserById(id));
+            return userDetailsService.getUserById(id);
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.notFound().build();
+            log.error("Requested user not found");
+            throw e;
         }
     }
     
